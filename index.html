@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn How to Learn Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>Learn How to Learn</h1>
+        <div id="timer">Time left: <span id="timeLeft">60</span>s</div>
+
+        <!-- المربعات الفارغة لكل كلمة -->
+        <div class="words-container">
+            <div class="word-box" data-word="LEARN1"></div>
+            <div class="word-box" data-word="HOW"></div>
+            <div class="word-box" data-word="TO"></div>
+            <div class="word-box" data-word="LEARN2"></div>
+        </div>
+
+        <!-- شبكة الأحرف -->
+        <div class="grid"></div>
+
+        <div class="button-container">
+            <button id="resetButton" class="game-button">Reset Game</button>
+        </div>
+    </div>
+
+    <div id="popup" class="popup">
+        <div class="popup-content">
+            <p>Congratulations! You've completed the puzzle!</p>
+            <button id="closePopup">Close</button>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const words = ['LEARN1', 'HOW', 'TO', 'LEARN2'];
+        const cellsData = [
+            'L', 'E', 'A', 'P', 'Z',
+            'H', 'A', 'R', 'N', 'H',
+            'L', 'E', 'A', 'R', 'O',
+            'T', 'O', 'Z', 'M', 'W'
+        ];
+        const grid = document.querySelector('.grid');
+        const wordBoxes = document.querySelectorAll('.word-box');
+        const popup = document.getElementById('popup');
+        const closePopup = document.getElementById('closePopup');
+        const timeLeftDisplay = document.getElementById('timeLeft');
+        const resetButton = document.getElementById('resetButton');
+        let timeLeft = 60;
+        let timer;
+        let selectedCells = [];
+
+        // إعداد المؤقت الزمني وتحديثه
+        const startTimer = () => {
+            timer = setInterval(() => {
+                timeLeft--;
+                timeLeftDisplay.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert("Time's up! Try again.");
+                    resetGame();
+                }
+            }, 1000);
+        };
+
+        // بدء المؤقت عند تحميل الصفحة
+        startTimer();
+
+        // تعبئة الشبكة بالأحرف
+        cellsData.forEach(letter => {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.textContent = letter;
+            cell.dataset.letter = letter;
+            grid.appendChild(cell);
+        });
+
+        // عند النقر على خلية
+        grid.addEventListener('click', (e) => {
+            const cell = e.target;
+            if (!cell.classList.contains('cell') || cell.classList.contains('selected')) return;
+
+            // تأكد من أن الخلية مجاورة
+            if (selectedCells.length > 0 && !isAdjacent(selectedCells[selectedCells.length - 1], cell)) {
+                alert("Please select adjacent letters only!");
+                clearSelection();
+                return;
+            }
+
+            cell.classList.add('selected');
+            selectedCells.push(cell);
+            checkSelection();
+        });
+
+        // التحقق من تجميع الكلمات بشكل صحيح
+        const checkSelection = () => {
+            const selectedWord = selectedCells.map(cell => cell.dataset.letter).join('');
+            wordBoxes.forEach(box => {
+                if (box.dataset.word === 'LEARN1' && selectedWord === 'LEARN') {
+                    animateWordCompletion(box, selectedCells);
+                    box.textContent = selectedWord;
+                    box.classList.add('completed');
+                    selectedCells = [];
+                } else if (box.dataset.word === 'LEARN2' && selectedWord === 'LEARN') {
+                    animateWordCompletion(box, selectedCells);
+                    box.textContent = selectedWord;
+                    box.classList.add('completed');
+                    selectedCells = [];
+                } else if (box.dataset.word === selectedWord) {
+                    animateWordCompletion(box, selectedCells);
+                    box.textContent = selectedWord;
+                    box.classList.add('completed');
+                    selectedCells = [];
+                }
+                // تحقق من اكتمال جميع الكلمات
+                if ([...wordBoxes].every(box => box.classList.contains('completed'))) {
+                    clearInterval(timer);
+                    popup.classList.add('show');
+                }
+            });
+        };
+
+        // إضافة حركة انتقالية عند اكتمال الكلمة
+        const animateWordCompletion = (box, selectedCells) => {
+            selectedCells.forEach((cell, index) => {
+                cell.classList.add('move-to-box');
+                cell.style.transition = "transform 0.5s ease, color 0.5s ease";
+                cell.style.transform = `translate(${box.offsetLeft - cell.offsetLeft}px, ${box.offsetTop - cell.offsetTop}px)`;
+                cell.style.color = "white";
+                setTimeout(() => {
+                    cell.classList.add('final-position');
+                    cell.style.transform = "none";
+                }, 500);
+            });
+        };
+
+        // التحقق من أن الخلية مجاورة
+        const isAdjacent = (cell1, cell2) => {
+            const cell1Index = [...grid.children].indexOf(cell1);
+            const cell2Index = [...grid.children].indexOf(cell2);
+            const columns = 5;
+            const row1 = Math.floor(cell1Index / columns);
+            const col1 = cell1Index % columns;
+            const row2 = Math.floor(cell2Index / columns);
+            const col2 = cell2Index % columns;
+            return Math.abs(row1 - row2) + Math.abs(col1 - col2) === 1;
+        };
+
+        // إلغاء تحديد الحروف في حال الخطأ
+        const clearSelection = () => {
+            selectedCells.forEach(cell => cell.classList.remove('selected'));
+            selectedCells = [];
+        };
+
+        // إعادة تعيين اللعبة
+        const resetGame = () => {
+            // إعادة تحميل الصفحة
+            location.reload();
+        };
+
+        closePopup.addEventListener('click', () => {
+            popup.classList.remove('show');
+            resetGame();
+        });
+
+        resetButton.addEventListener('click', resetGame);
+    });
+    </script>
+</body>
+</html>
